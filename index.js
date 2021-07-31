@@ -1,25 +1,49 @@
 "use strict";
-const fs = require("fs");
-const path = require("path");
+const debug = require("debug")("smtp-server");
+const simpleParser = require("mailparser").simpleParser;
 
-// Build file structure
-const messageDatabasePath = path.join(process.cwd(), "messages");
-fs.mkdirSync(messageDatabasePath, { recursive: true });
+require("./src/db/mongo");
+const Message = require("./src/db/models/message");
+const SmtpServer = require("./src/smtpServer");
 
-const onData = (stream, session, callback) => {
-  const timestamp = Date.now().toString();
-  const filepath = path.join(messageDatabasePath, timestamp);
-  const writeStream = fs.createWriteStream(filepath);
-  stream.pipe(writeStream);
-  stream.on("end", () => {
-    writeStream.close();
-    callback();
-  });
+const onData = async (stream, session, callback) => {
+  debug(`Message received.`);
+  simpleParser(stream)
+    .then((parsed) => {
+      const message = new Message({
+        text: parsed.text,
+        subject: parsed.subject,
+        date: parsed.date,
+        to: parsed.to.text || "",
+        from: parsed.from.text || "",
+        messageId: parsed.messageId,
+      });
+
+      for (const attachment of parsed.attachments) {
+        message.attachments.push({
+          content: attachment.content,
+          contentType: attachment.contentType,
+          contentDisposition: attachment.contentDisposition,
+          filename: attachment.filename,
+          size: attachment.size,
+        });
+      }
+      return message.save();
+    })
+    .then((savedDoc) => {
+      callback();
+    })
+    .catch((err) => {
+      console.error(err);
+      callback(`Message parsing error.`);
+    });
 };
 
 const authorizedClients = [];
-authorizedClients.push("127.0.0.1");
-const server = require("./src/smtp-server")({
+if (typeof process.env.AUTHORIZE_CLIENTS !== "undefined"){
+  authorizedClients.push(process.env.AUTHORIZE_CLIENTS);
+}
+const server = SmtpServer({
   authorizedClients,
   serverOpts: { onData },
 });
