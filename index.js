@@ -6,6 +6,12 @@ require("./src/db/mongo");
 const Message = require("./src/db/models/message");
 const SmtpServer = require("./src/smtpServer");
 
+const socketServer = require("./src/socket")();
+socketServer.on("error", function errorListener(err) {
+  debug(`Socket Server error: ${err.toString()}`);
+  console.error(err);
+});
+
 const onData = async (stream, session, callback) => {
   debug(`Message received.`);
   simpleParser(stream)
@@ -39,16 +45,16 @@ const onData = async (stream, session, callback) => {
     });
 };
 
-const authorizedClients = [];
-if (typeof process.env.AUTHORIZE_CLIENTS !== "undefined"){
-  authorizedClients.push(process.env.AUTHORIZE_CLIENTS);
+let authorizedClients = [];
+if (typeof process.env.AUTHORIZE_CLIENTS !== "undefined") {
+  authorizedClients = process.env.AUTHORIZE_CLIENTS.split(",");
 }
-const server = SmtpServer({
+
+SmtpServer({
   authorizedClients,
   serverOpts: { onData },
-});
-server.listen(8025);
-
-server.on("error", (err) => {
-  console.log("Error %s", err.message);
-});
+})
+  .on("error", (err) => {
+    console.log("Error %s", err.message);
+  })
+  .listen(8025);

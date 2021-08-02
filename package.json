@@ -1,7 +1,7 @@
 {
   "name": "smtp_server",
-  "version": "1.0.0",
-  "description": "SMTP server designed to listen for and process emails from TRENDNet NVR",
+  "version": "1.1.0",
+  "description": "SMTP server designed to listen for emails, store them in a database, and notify using an IPC server.",
   "main": "index.js",
   "scripts": {
     "debug": "DEBUG=smtp-server:* nodemon index.js",
@@ -14,9 +14,7 @@
   },
   "keywords": [
     "smtp",
-    "server",
-    "trendnet",
-    "nvr"
+    "server"
   ],
   "author": "Robert Burckner",
   "license": "ISC",
