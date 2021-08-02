@@ -24,14 +24,15 @@ module.exports = (opts = {}) => {
 
   try {
     if (typeof pathOrPort === "string") {
+      fs.accessSync(pathOrPort, fs.constants.W_OK);
       if (fs.statSync(pathOrPort).isSocket()) {
         fs.unlinkSync(pathOrPort);
-        return createServer(pathOrPort);
       }
     }
   } catch (err) {
-    console.log(err);
-    process.exit(0);
+    if (err.code !== "ENOENT") {
+      throw err;
+    }
   }
   return createServer(pathOrPort);
 };
