@@ -10,4 +10,5 @@ The following template includes the script defaults.
 #MONGODB_HOST=localhost
 #MONGODB_PORT=27017
 #MONGODB_COLLECTION=messages
+#SMTP_PORT=8025
 ```

@@ -4,9 +4,19 @@ const simpleParser = require("mailparser").simpleParser;
 
 require("./src/db/mongo");
 const Message = require("./src/db/models/message");
+const messageHelper = require("./src/messageHelper");
 const SmtpServer = require("./src/smtpServer");
 
+const port = process.env.SMTP_PORT || 8025;
+let socket = null;
 const socketServer = require("./src/socket")();
+socketServer.on("connection", (connection) => {
+  debug(`Socket client connected.`);
+  connection.on("close", function connectionCloseListener(socket) {
+    debug(`Socket client connection closed.`);
+  });
+  socket = connection;
+});
 socketServer.on("error", function errorListener(err) {
   debug(`Socket Server error: ${err.toString()}`);
   console.error(err);
@@ -37,6 +47,7 @@ const onData = async (stream, session, callback) => {
       return message.save();
     })
     .then((savedDoc) => {
+      socket.write(messageHelper(savedDoc));
       callback();
     })
     .catch((err) => {
@@ -57,4 +68,4 @@ SmtpServer({
   .on("error", (err) => {
     console.log("Error %s", err.message);
   })
-  .listen(8025);
+  .listen(port);
